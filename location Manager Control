@@ -1,0 +1,28 @@
+  locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+    locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            if(spType.equals("Hajj")) {
+                long UnixTime = Long.valueOf(System.currentTimeMillis() / 1000);  //in seconds
+                mDatabase = getReference("Hajjis", spId, "location");
+                mDatabase.child("0").setValue(location.getLatitude());//Latitude
+                mDatabase.child("1").setValue(location.getLongitude());//Longitude
+                mDatabase.child("2").setValue(UnixTime);//Time
+            }
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+    };
