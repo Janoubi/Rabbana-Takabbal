@@ -1,0 +1,305 @@
+package hackathon_g043.hajjcontrol;
+
+import android.Manifest;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.Build;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.sql.Time;
+
+public class MainActivity extends AppCompatActivity {
+private DatabaseReference mDatabase;
+private SharedPreferences sp;
+private String spId;
+private String spCode;
+private String spType;
+
+//request GPS
+LocationManager locationManager;
+LocationListener locationListener;
+
+ImageView imA3mal;
+ImageView imCompanyInfo;
+ImageView imConfirmedA3mal;
+ImageView imCompanyHajjDistributions;
+ImageView imAreaStatistics;
+ImageView imHajjDistribution;
+ImageView imLogo;
+EditText edUserID; //Primary Key
+EditText edCode;  //provided by the App Company
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 1) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+                }
+            }
+        }
+    }
+//
+
+@Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    sp=this.getSharedPreferences("hackathon_g043.hajjcontrol", Context.MODE_PRIVATE);
+    loadsp();
+    createViews();
+    log("Iam here"+spType);
+    target(spType);
+    toast("iamhere");
+
+
+edUserID.addTextChangedListener(new TextWatcher() {
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+        log("Finished");
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+
+    }
+});
+edCode.addTextChangedListener(new TextWatcher() {
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+
+    }
+});
+
+
+    locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+    locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            if(spType.equals("Hajj")) {
+                long UnixTime = Long.valueOf(System.currentTimeMillis() / 1000);  //in seconds
+                mDatabase = getReference("Hajjis", spId, "location");
+                mDatabase.child("0").setValue(location.getLatitude());//Latitude
+                mDatabase.child("1").setValue(location.getLongitude());//Longitude
+                mDatabase.child("2").setValue(UnixTime);//Time
+            }
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+    };
+
+    if (Build.VERSION.SDK_INT < 23) {
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+    } else {
+        if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},1);
+        } else {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+            Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+//            mMap.clear();
+//            LatLng userLocation = new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
+//            mMap.addMarker(new MarkerOptions().position(userLocation).title("Your Location"));
+//            mMap.moveCamera(CameraUpdateFactory.newLatLng(userLocation));
+        }
+    }
+
+    }
+
+
+
+    private DatabaseReference getReference(String group,String ... childs )
+    {
+        DatabaseReference dr;
+        dr= FirebaseDatabase.getInstance().getReference(group);
+
+        for(String a:childs)
+        {
+         dr=dr.child(a);
+        }
+
+        return dr.getRef();
+
+    }
+
+
+    private void loadsp(){
+        spId=sp.getString("ID","");
+       spCode=sp.getString("CODE","");
+      spType=sp.getString("TYPE","");
+
+    }
+
+    private void savesp(){
+
+        sp.edit().putString("ID",spId).apply();
+        sp.edit().putString("CODE",spCode).apply();
+        sp.edit().putString("TYPE",spType).apply();
+
+    }
+
+//    private void addListener (DatabaseReference dr)
+//    {
+//        dr.addValueEventListener(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+//
+//            }
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError databaseError) {
+//
+//            }
+//        });
+//    }
+
+
+
+    private void checkDatabase()
+    {
+        mDatabase=getReference("Hajjis",spId,"Type");
+    mDatabase.addValueEventListener(new ValueEventListener() {
+        @Override
+        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+            spCode=String.valueOf(dataSnapshot.getValue());
+            savesp();
+        }
+
+        @Override
+        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+        }
+    });
+    }
+    private void toast(String text)
+    {
+        Toast.makeText(this, text,
+                Toast.LENGTH_SHORT).show();
+    }
+private void target(String type)
+{
+
+    log("atswitch");
+    switch (type) {
+        case "Hajj":
+            hideall();
+            mDatabase=getReference("Hajjis",spId,"location");
+showHajj();
+            break;
+
+        case "Gover":
+            hideall();
+            mDatabase=getReference("Hajjis",spId,"location");
+showGover();
+            break;
+
+        case "Mngr":
+            hideall();
+            mDatabase=getReference("Hajjis",spId,"location");
+showMngr();
+            break;
+        default:
+            hideall();
+            showRegister();
+
+    }
+}
+
+private void hideall(){//should be completed
+imA3mal.setVisibility(View.GONE);
+imCompanyInfo.setVisibility(View.GONE);
+imConfirmedA3mal.setVisibility(View.GONE);
+imCompanyHajjDistributions.setVisibility(View.GONE);
+imAreaStatistics.setVisibility(View.GONE);
+imHajjDistribution.setVisibility(View.GONE);
+edCode.setVisibility(View.GONE);
+edUserID.setVisibility(View.GONE);
+imLogo.setVisibility(View.GONE);
+}
+
+private void showRegister(){
+    edCode.setVisibility(View.VISIBLE);
+    edUserID.setVisibility(View.VISIBLE);
+    imLogo.setVisibility(View.VISIBLE);
+}
+private void showMngr(){
+    imConfirmedA3mal.setVisibility(View.VISIBLE);
+    imCompanyHajjDistributions.setVisibility(View.VISIBLE);
+}
+private void showGover(){
+    imAreaStatistics.setVisibility(View.VISIBLE);
+    imHajjDistribution.setVisibility(View.VISIBLE);
+}
+private void showHajj(){
+    imA3mal.setVisibility(View.VISIBLE);
+    imCompanyInfo.setVisibility(View.VISIBLE);
+
+}
+public void log(String input){
+    Log.e("bluee",input);
+}
+
+private void createViews(){
+    imA3mal=(ImageView)findViewById(R.id.a3mal);
+    imCompanyInfo=(ImageView) findViewById(R.id.companyInfo);
+    imConfirmedA3mal=(ImageView) findViewById(R.id.confirmedA3mal);
+    imCompanyHajjDistributions=(ImageView) findViewById(R.id.companyHajjDistribution);
+    imAreaStatistics=(ImageView) findViewById(R.id.areaStatistics);
+    imHajjDistribution=(ImageView) findViewById(R.id.hajjDistribution);
+    edCode=(EditText) findViewById(R.id.code);
+    edUserID=(EditText) findViewById(R.id.userID);
+    imLogo=(ImageView) findViewById(R.id.logo);
+
+}
+}
